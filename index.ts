@@ -1,13 +1,14 @@
 import { Contact, Message, ScanStatus, WechatyBuilder } from "wechaty";
+import { getNightGreets } from "./utils";
 
-import { FileBox } from "file-box";
 import qrTerm from "qrcode-terminal";
 
 const options = {
-  name: "moro-salamanca",
+    name: "moro-salamanca",
 };
 
 const bot = WechatyBuilder.build(options);
+
 
 /**
  *
@@ -15,55 +16,55 @@ const bot = WechatyBuilder.build(options);
  *
  */
 bot
-  .on("logout", onLogout)
-  .on("login", onLogin)
-  .on("scan", onScan)
-  .on("error", onError)
-  .on("message", onMessage)
-  /**
-   *
-   * 3. Start the bot!
-   *
-   */
-  .start()
-  .catch(async (e) => {
-    console.error("Bot start() fail:", e);
-    await bot.stop();
-    process.exit(-1);
-  });
+    .on("logout", onLogout)
+    .on("login", onLogin)
+    .on("scan", onScan)
+    .on("error", onError)
+    .on("message", onMessage)
+/**
+ *
+ * 3. Start the bot!
+ *
+ */
+    .start()
+    .catch(async (e) => {
+	console.error("Bot start() fail:", e);
+	await bot.stop();
+	process.exit(-1);
+    });
 
 function onScan(qrcode: string, status: ScanStatus) {
-  if (status === ScanStatus.Waiting || status === ScanStatus.Timeout) {
-    qrTerm.generate(qrcode);
+    if (status === ScanStatus.Waiting || status === ScanStatus.Timeout) {
+	qrTerm.generate(qrcode);
 
-    const qrcodeImageUrl = [
-      "https://wechaty.js.org/qrcode/",
-      encodeURIComponent(qrcode),
-    ].join("");
+	const qrcodeImageUrl = [
+	    "https://wechaty.js.org/qrcode/",
+	    encodeURIComponent(qrcode),
+	].join("");
 
-    console.info(
-      "onScan: %s(%s) - %s",
-      ScanStatus[status],
-      status,
-      qrcodeImageUrl
-    );
-  } else {
-    console.info("onScan: %s(%s)", ScanStatus[status], status);
-  }
+	console.info(
+	    "onScan: %s(%s) - %s",
+	    ScanStatus[status],
+	    status,
+	    qrcodeImageUrl
+	);
+    } else {
+	console.info("onScan: %s(%s)", ScanStatus[status], status);
+    }
 
-  // console.info(`[${ScanStatus[status]}(${status})] ${qrcodeImageUrl}\nScan QR Code above to log in: `)
+    // console.info(`[${ScanStatus[status]}(${status})] ${qrcodeImageUrl}\nScan QR Code above to log in: `)
 }
 
 function onLogin(user: Contact) {
-  console.info(`${user.name()} login`);
+    console.info(`${user.name()} login`);
 }
 
 function onLogout(user: Contact) {
-  console.info(`${user.name()} logged out`);
+    console.info(`${user.name()} logged out`);
 }
 
 function onError(e: Error) {
-  console.error("Bot error:", e);
+    console.error("Bot error:", e);
 }
 
 /**
@@ -73,76 +74,32 @@ function onError(e: Error) {
  *
  */
 async function onMessage(msg: Message) {
-  console.info(msg.toString());
+    console.info(msg.toString());
 
-  if (msg.self()) {
-    console.info("Message discarded because its outgoing");
-    return;
-  }
+    if (msg.self()) {
+	console.info("Message discarded because its outgoing");
+	return;
+    }
 
-  if (msg.age() > 2 * 60) {
-    console.info("Message discarded because its TOO OLD(than 2 minutes)");
-    return;
-  }
+    if (msg.age() > 2 * 60) {
+	console.info("Message discarded because its TOO OLD(than 2 minutes)");
+	return;
+    }
 
-  if (
-    msg.type() !== bot.Message.Type.Text ||
-    !/^(ding|ping|bing|code)$/i.test(msg.text())
-  ) {
-    console.info(
-      "Message discarded because it does not match ding/ping/bing/code"
-    );
-    return;
-  }
-
-  /**
-   * 1. reply 'dong'
-   */
-  await msg.say("dong");
-  console.info("REPLY: dong");
-
-  /**
-   * 2. reply image(qrcode image)
-   */
-  const fileBox = FileBox.fromUrl(
-    "https://wechaty.github.io/wechaty/images/bot-qr-code.png"
-  );
-
-  await msg.say(fileBox);
-  console.info("REPLY: %s", fileBox.toString());
-
-  /**
-   * 3. reply 'scan now!'
-   */
-  await msg.say(
-    [
-      "Join Wechaty Developers Community\n\n",
-      "Scan now, because other Wechaty developers want to talk with you too!\n\n",
-      "(secret code: wechaty)",
-    ].join("")
-  );
+    const greet = await handleNightGreets(msg.text())
+    if (greet != "") {
+	await msg.say(`${greet}`);
+    }
 }
 
-/**
- *
- * 7. Output the Welcome Message
- *
- */
-const welcome = `
-  | __        __        _           _
-  | \\ \\      / /__  ___| |__   __ _| |_ _   _
-  |  \\ \\ /\\ / / _ \\/ __| '_ \\ / _\` | __| | | |
-  |   \\ V  V /  __/ (__| | | | (_| | |_| |_| |
-  |    \\_/\\_/ \\___|\\___|_| |_|\\__,_|\\__|\\__, |
-  |                                     |___/
-  =============== Powered by Wechaty ===============
-  -------- https://github.com/wechaty/wechaty --------
-            Version: ${bot.version()}
-  I'm a bot, my superpower is talk in Wechat.
-  If you send me a 'ding', I will reply you a 'dong'!
-  __________________________________________________
-  Hope you like it, and you are very welcome to
-  upgrade me to more superpowers!
-  Please wait... I'm trying to login in...
-  `;
+const handleNightGreets = async (msg: string) => {
+    if (msg === "night") {
+	const word = await getNightGreets()
+	return word
+    } else {
+	return ""
+    }
+}
+
+const welcome = 'welcome to booty bot'
 console.info(welcome);
